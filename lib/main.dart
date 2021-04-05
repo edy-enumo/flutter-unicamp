@@ -37,6 +37,10 @@ class Thor {
   //int name = 0;
 
   Thor(List<int> cord, String face, bool alive) {
+    restart();
+  }
+
+  void restart() {
     this.alive = true;
     this.cord = [0, 0];
     this.face = "images/thorDown01.png";
@@ -76,8 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _restart() {
     setState(() {
-      _myThor.cord = [0, 0];
-      _myThor.alive = true;
+      _myThor.restart();
       // _myThor = Thor([0, 0], "images/thorDown01.png", true);
       _myAxe = Axe([7, 7], true);
       _myThanos = Thanos([4, 4], "images/thanosDead.png", true);

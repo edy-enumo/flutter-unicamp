@@ -69,8 +69,6 @@ class Thanos {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _mapSize = 8;
-  int _counter = 0;
-  List<int> _cordThor = [0, 0];
 
   Thor _myThor = Thor([0, 0], "images/thorDown01.png", true);
   Axe _myAxe = Axe([7, 7], true);
@@ -78,7 +76,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _restart() {
     setState(() {
-      _myThor = Thor([0, 0], "images/thorDown01.png", true);
+      _myThor.cord = [0, 0];
+      _myThor.alive = true;
+      // _myThor = Thor([0, 0], "images/thorDown01.png", true);
       _myAxe = Axe([7, 7], true);
       _myThanos = Thanos([4, 4], "images/thanosDead.png", true);
     });
@@ -260,24 +260,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  void _decreaseCounter() {
-    setState(() {
-      _counter--;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: <Widget>[
+        actions: [
           FlatButton(
             textColor: Colors.white,
             onPressed: _restart,
@@ -291,14 +279,14 @@ class _MyHomePageState extends State<MyHomePage> {
           padding: const EdgeInsets.only(top: 50),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
+            children: [
               createRPGMap2(_mapSize, _myThor, _myAxe, _myThanos),
             ],
           ),
         ),
       ),
       floatingActionButton: Stack(
-        children: <Widget>[
+        children: [
           Align(
             alignment: FractionalOffset(0.1, 1),
             child: FloatingActionButton(
@@ -336,25 +324,6 @@ class _MyHomePageState extends State<MyHomePage> {
       // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
-}
-
-Column widgetCreateRPGMap(int mapSize, cordThor) {
-  return Column(
-    children: createRows(mapSize, cordThor),
-  );
-}
-
-List<Widget> createRows(int mapSize, cordThor) {
-  List<Widget> rows = [];
-
-  for (int y = 0; y < mapSize; y++) {
-    Row myRow = Row(
-      children: createCointainers(mapSize, cordThor),
-    );
-    rows.add(myRow);
-  }
-
-  return rows;
 }
 
 Column createRPGMap2(int mapSize, _myThor, _myAxe, _myThanos) {
@@ -442,21 +411,4 @@ Column createRPGMap2(int mapSize, _myThor, _myAxe, _myThanos) {
   );
 
   return rpgMap;
-}
-
-List<Widget> createCointainers(int mapSize, cordThor) {
-  List<Widget> containers = [];
-  List<List<Widget>> myNew = [[]];
-
-  for (int x = 0; x < mapSize; x++) {
-    Container myContainer = Container(
-      margin: const EdgeInsets.all(1.5),
-      height: 37.0,
-      width: 37.0,
-      color: Colors.black12,
-    );
-    containers.add(myContainer);
-  }
-
-  return containers;
 }

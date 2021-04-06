@@ -2,10 +2,14 @@
 //import 'dart:html';
 
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 void main() {
   runApp(MyApp());
 }
+
+var random = new Random();
+int _mapSize = 8;
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -34,16 +38,39 @@ class Thor {
   List<int> cord;
   String face;
   bool alive;
-  //int name = 0;
+  int imageCount = 0;
 
-  Thor(List<int> cord, String face, bool alive) {
-    restart();
+  Thor() {
+    this.alive = true;
+    this.cord = [random.nextInt(_mapSize), random.nextInt(_mapSize)];
+    this.face = "images/thorDown01.png";
   }
 
-  void restart() {
-    this.alive = true;
-    this.cord = [0, 0];
-    this.face = "images/thorDown01.png";
+  void nextImageCount() {
+    imageCount = (imageCount + 1) % 3;
+  }
+
+  void setImageDirection(direction) {
+    nextImageCount();
+    switch (direction) {
+      case 'up':
+        face = "images/thorUp0" + (imageCount + 1).toString() + ".png";
+        break;
+      case 'down':
+        face = "images/thorDown0" + (imageCount + 1).toString() + ".png";
+        break;
+      case 'left':
+        face = "images/thorLeft0" + (imageCount + 1).toString() + ".png";
+        break;
+      case 'right':
+        face = "images/thorRight0" + (imageCount + 1).toString() + ".png";
+        break;
+    }
+  }
+
+  void die() {
+    alive = false;
+    face = "images/thorDead.png";
   }
 }
 
@@ -52,10 +79,10 @@ class Axe {
   bool alive;
   String face;
 
-  Axe(List<int> cord, bool alive) {
+  Axe() {
     this.face = "images/axe01.png";
-    this.cord = cord;
-    this.alive = alive;
+    this.cord = [random.nextInt(_mapSize), random.nextInt(_mapSize)];
+    this.alive = true;
   }
 }
 
@@ -64,202 +91,135 @@ class Thanos {
   bool alive;
   String face;
 
-  Thanos(List<int> cord, String face, bool alive) {
+  Thanos() {
     this.face = "images/thanos01.png";
-    this.cord = cord;
-    this.alive = alive;
+    this.cord = [random.nextInt(_mapSize), random.nextInt(_mapSize)];
+    this.alive = true;
+  }
+
+  void die() {
+    alive = false;
+    face = "images/thanosDead.png";
   }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _mapSize = 8;
+bool compareCoords(cord1, cord2) {
+  return cord1[0] == cord2[0] && cord1[1] == cord2[1];
+}
 
-  Thor _myThor = Thor([0, 0], "images/thorDown01.png", true);
-  Axe _myAxe = Axe([7, 7], true);
-  Thanos _myThanos = Thanos([4, 4], "images/thanos01.png", true);
+List newMatrix(row, column) {
+  return List.generate(
+      row, (i) => List.generate(column, (j) => false, growable: false),
+      growable: false);
+}
+
+List calculateThorPath(Thor thor, Axe axe, Thanos thanos, int mapsize) {
+  var thorPath = newMatrix(mapsize, mapsize);
+  List<int> thorCord = [thor.cord[0], thor.cord[1]];
+
+  while (thorCord[0] != axe.cord[0] || thorCord[1] != axe.cord[1]) {
+    thorPath[thorCord[0]][thorCord[1]] = true;
+    if (thorCord[0] > axe.cord[0]) {
+      thorCord[0] = thorCord[0] - 1;
+    } else if (thorCord[0] < axe.cord[0]) {
+      thorCord[0] = thorCord[0] + 1;
+    } else if (thorCord[1] > axe.cord[1]) {
+      thorCord[1] = thorCord[1] - 1;
+    } else if (thorCord[1] < axe.cord[1]) {
+      thorCord[1] = thorCord[1] + 1;
+    }
+  }
+  thorPath[thorCord[0]][thorCord[1]] = true;
+
+  return thorPath;
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  Thor _myThor = Thor();
+  Axe _myAxe = Axe();
+  Thanos _myThanos = Thanos();
+  var thorPath;
+
+  _MyHomePageState() {
+    thorPath = calculateThorPath(_myThor, _myAxe, _myThanos, _mapSize);
+  }
 
   void _restart() {
     setState(() {
-      _myThor.restart();
-      // _myThor = Thor([0, 0], "images/thorDown01.png", true);
-      _myAxe = Axe([7, 7], true);
-      _myThanos = Thanos([4, 4], "images/thanosDead.png", true);
+      _myThor = Thor();
+      _myAxe = Axe();
+      while (compareCoords(_myThor.cord, _myAxe.cord)) {
+        print('recriando machado');
+        _myAxe = Axe();
+      }
+
+      _myThanos = Thanos();
+      while (compareCoords(_myThor.cord, _myThanos.cord) ||
+          compareCoords(_myAxe.cord, _myThanos.cord)) {
+        print('recriando thanos');
+        _myThanos = Thanos();
+      }
+      moveThor("");
     });
   }
 
-  void _checkThanosFight() {
-    print("_myThor.cord");
-    print(_myThor.cord);
-    print("_myThanos.cord");
-    print(_myThanos.cord);
-    print("------------");
-
-    if (_myThanos.alive == true) {
-      if (_myThor.cord[0] == _myThanos.cord[0]) {
-        if ((_myThor.cord[1] - 1 == _myThanos.cord[1]) ||
-            (_myThor.cord[1] + 1 == _myThanos.cord[1])) {
-          print("eae");
-          print(_myAxe.alive);
-          if (_myAxe.alive == false) {
-            //Como o Thor esta com o machado, ele ganha
-            _myThanos.alive = false;
-            _myThanos.face = "images/thanosDead.png";
-          } else {
-            //Sem o machado o Thor nao consegue ganhar
-            _myThor.alive = false;
-            _myThor.face = "images/thorDead.png";
-          }
-        }
-      } else if (_myThor.cord[1] == _myThanos.cord[1]) {
-        if ((_myThor.cord[0] - 1 == _myThanos.cord[0]) ||
-            (_myThor.cord[0] + 1 == _myThanos.cord[0])) {
-          print("eae");
-          print(_myAxe.alive);
-          if (_myAxe.alive == false) {
-            //Como o Thor esta com o machado, ele ganha
-            _myThanos.alive = false;
-            _myThanos.face = "images/thanosDead.png";
-          } else {
-            //Sem o machado o Thor nao consegue ganhar
-            _myThor.alive = false;
-            _myThor.face = "images/thorDead.png";
-          }
-        }
-      }
+  void incrementMapSize(int num) {
+    if (_mapSize > 2 || num > 0) {
+      _mapSize += num;
     }
+    _restart();
   }
 
-  void _checkGetItem() {
-    if (_myAxe.alive == true) {
-      if (_myThor.cord[0] == _myAxe.cord[0]) {
-        if ((_myThor.cord[1] - 1 == _myAxe.cord[1]) ||
-            (_myThor.cord[1] + 1 == _myAxe.cord[1])) {
-          _myAxe.alive = false;
-          print("chegou");
-          print(_myThor.cord);
-          print(_myAxe.cord);
-        }
-      } else if (_myThor.cord[1] == _myAxe.cord[1]) {
-        if ((_myThor.cord[0] - 1 == _myAxe.cord[0]) ||
-            (_myThor.cord[0] + 1 == _myAxe.cord[0])) {
-          _myAxe.alive = false;
-          print("chegou2");
-          print(_myThor.cord);
-          print(_myAxe.cord);
-        }
-      }
+  int canMove(nextCord) {
+    //0 = fim do mapa; 1 = pode andar; 2 = encontrou thanos; 3 = encontrou o machado
+    if (nextCord[0] < 0 ||
+        nextCord[1] < 0 ||
+        nextCord[0] >= _mapSize ||
+        nextCord[1] >= _mapSize) return 0;
+
+    if (compareCoords(nextCord, _myThanos.cord)) return 2;
+    if (compareCoords(nextCord, _myAxe.cord)) return 3;
+    return 1;
+  }
+
+  void moveThor(direction) {
+    var nextCoord = [_myThor.cord[0], _myThor.cord[1]];
+    switch (direction) {
+      case 'up':
+        nextCoord[1]--;
+        break;
+      case 'down':
+        nextCoord[1]++;
+        break;
+      case 'left':
+        nextCoord[0]--;
+        break;
+      case 'right':
+        nextCoord[0]++;
+        break;
     }
-  }
 
-  void _thorMoveUp() {
     setState(() {
-      if ((_myThor.cord[1] - 1) >= 0) {
-        if (_myThor.alive == true) {
-          if ((_myThor.cord[1] - 1 != _myThanos.cord[1]) ||
-              (_myThor.cord[0] != _myThanos.cord[0])) {
-            _myThor.cord[1]--;
-            _checkGetItem();
-            _checkThanosFight();
+      if (_myThor.alive) {
+        _myThor.setImageDirection(direction);
 
-            print(_mapSize);
-            print(_myThor.cord);
-
-            if (_myThor.alive == true) {
-              if (_myThor.face == "images/thorUp01.png") {
-                _myThor.face = "images/thorUp02.png";
-              } else if (_myThor.face == "images/thorUp02.png") {
-                _myThor.face = "images/thorUp03.png";
-              } else {
-                _myThor.face = "images/thorUp01.png";
-              }
-            }
+        int moveAction = canMove(nextCoord);
+        if (moveAction == 1) {
+          _myThor.cord = nextCoord;
+        }
+        if (moveAction == 2) {
+          if (_myAxe.alive) {
+            _myThor.die();
+          } else {
+            _myThanos.die();
           }
         }
-      }
-    });
-  }
-
-  void _thorMoveDown() {
-    setState(() {
-      if ((_myThor.cord[1] + 1) < _mapSize) {
-        if (_myThor.alive == true) {
-          if ((_myThor.cord[1] + 1 != _myThanos.cord[1]) ||
-              (_myThor.cord[0] != _myThanos.cord[0])) {
-            _myThor.cord[1]++;
-            _checkGetItem();
-            _checkThanosFight();
-
-            print(_mapSize);
-            print(_myThor.cord);
-
-            if (_myThor.alive == true) {
-              if (_myThor.face == "images/thorDown01.png") {
-                _myThor.face = "images/thorDown02.png";
-              } else if (_myThor.face == "images/thorDown02.png") {
-                _myThor.face = "images/thorDown03.png";
-              } else {
-                _myThor.face = "images/thorDown01.png";
-              }
-            }
-          }
+        if (moveAction == 3) {
+          _myThor.cord = nextCoord;
+          _myAxe.alive = false;
         }
       }
-    });
-  }
-
-  void _thorMoveLeft() {
-    setState(() {
-      if ((_myThor.cord[0] - 1) >= 0) {
-        if (_myThor.alive == true) {
-          if ((_myThor.cord[1] != _myThanos.cord[1]) ||
-              (_myThor.cord[0] - 1 != _myThanos.cord[0])) {
-            _myThor.cord[0]--;
-            _checkGetItem();
-            _checkThanosFight();
-
-            print(_mapSize);
-            print(_myThor.cord);
-
-            if (_myThor.alive == true) {
-              if (_myThor.face == "images/thorLeft01.png") {
-                _myThor.face = "images/thorLeft02.png";
-              } else if (_myThor.face == "images/thorLeft02.png") {
-                _myThor.face = "images/thorLeft03.png";
-              } else {
-                _myThor.face = "images/thorLeft01.png";
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-
-  void _thorMoveRight() {
-    setState(() {
-      if ((_myThor.cord[0] + 1) < _mapSize) {
-        if (_myThor.alive == true) {
-          if ((_myThor.cord[1] != _myThanos.cord[1]) ||
-              (_myThor.cord[0] + 1 != _myThanos.cord[0])) {
-            _myThor.cord[0]++;
-            _checkGetItem();
-            _checkThanosFight();
-
-            print(_mapSize);
-            print(_myThor.cord);
-
-            if (_myThor.alive == true) {
-              if (_myThor.face == "images/thorRight01.png") {
-                _myThor.face = "images/thorRight02.png";
-              } else if (_myThor.face == "images/thorRight02.png") {
-                _myThor.face = "images/thorRight03.png";
-              } else {
-                _myThor.face = "images/thorRight01.png";
-              }
-            }
-          }
-        }
-      }
+      thorPath = calculateThorPath(_myThor, _myAxe, _myThanos, _mapSize);
     });
   }
 
@@ -277,64 +237,88 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 50),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              createRPGMap2(_mapSize, _myThor, _myAxe, _myThanos),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: Stack(
+      body: Column(
         children: [
-          Align(
-            alignment: FractionalOffset(0.1, 1),
-            child: FloatingActionButton(
-              onPressed: _thorMoveLeft,
-              tooltip: 'Increment',
-              child: Icon(Icons.keyboard_arrow_left_outlined),
+          Expanded(
+            child: Container(
+                color: Colors.green,
+                child: Center(
+                  child: createRPGMap2(_mapSize, _myThor, _myAxe, _myThanos,
+                      thorPath, MediaQuery.of(context).size.width),
+                )),
+          ),
+          Container(
+            height: 80,
+            child: Row(
+              children: [
+                Expanded(
+                    child: Container(
+                  child: FloatingActionButton(
+                    onPressed: () => {incrementMapSize(-1)},
+                    child: Icon(Icons.remove),
+                    backgroundColor: Colors.green,
+                  ),
+                )),
+                Expanded(
+                    child: Container(
+                  child: FloatingActionButton(
+                    onPressed: () => {moveThor('up')},
+                    child: Icon(Icons.keyboard_arrow_up_outlined),
+                  ),
+                )),
+                Expanded(
+                    child: Container(
+                  child: FloatingActionButton(
+                    onPressed: () => {incrementMapSize(1)},
+                    child: Icon(Icons.add),
+                    backgroundColor: Colors.green,
+                  ),
+                )),
+              ],
             ),
           ),
-          Align(
-            alignment: FractionalOffset(0.4, 1),
-            child: FloatingActionButton(
-              onPressed: _thorMoveDown,
-              tooltip: 'Increment',
-              child: Icon(Icons.keyboard_arrow_down_outlined),
+          Container(
+            height: 80,
+            child: Row(
+              children: [
+                Expanded(
+                    child: Container(
+                  child: FloatingActionButton(
+                    onPressed: () => {moveThor('left')},
+                    child: Icon(Icons.keyboard_arrow_left_outlined),
+                  ),
+                )),
+                Expanded(
+                    child: Container(
+                  child: FloatingActionButton(
+                    onPressed: () => {moveThor('down')},
+                    child: Icon(Icons.keyboard_arrow_down_outlined),
+                  ),
+                )),
+                Expanded(
+                    child: Container(
+                  child: FloatingActionButton(
+                    onPressed: () => {moveThor('right')},
+                    child: Icon(Icons.keyboard_arrow_right_outlined),
+                  ),
+                )),
+              ],
             ),
-          ),
-          Align(
-            alignment: FractionalOffset(0.7, 1),
-            child: FloatingActionButton(
-              onPressed: _thorMoveUp,
-              tooltip: 'Increment',
-              child: Icon(Icons.keyboard_arrow_up_outlined),
-            ),
-          ),
-          Align(
-            alignment: FractionalOffset(1, 1),
-            child: FloatingActionButton(
-              onPressed: _thorMoveRight,
-              tooltip: 'Increment',
-              child: Icon(Icons.keyboard_arrow_right_outlined),
-            ),
-          ),
+          )
         ],
       ),
+
       // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
 
-Column createRPGMap2(int mapSize, _myThor, _myAxe, _myThanos) {
-  print(_myThor.cord);
+Column createRPGMap2(int mapSize, _myThor, _myAxe, _myThanos, thorPath, width) {
   Column rpgMap;
 
   List<Widget> rows = [];
 
+  double boxSize = width / mapSize - 3;
   //Create Rows
   for (int y = 0; y < mapSize; y++) {
     List<Widget> containers = [];
@@ -343,60 +327,30 @@ Column createRPGMap2(int mapSize, _myThor, _myAxe, _myThanos) {
     for (int x = 0; x < mapSize; x++) {
       Container currentContainer;
       //Thor Container
-      if ((x == _myThor.cord[0]) && (y == _myThor.cord[1])) {
-        currentContainer = Container(
-          margin: const EdgeInsets.all(1.5),
-          height: 37.0,
-          width: 37.0,
-          decoration: BoxDecoration(
-            color: Colors.black12,
-            image: DecorationImage(
-              image: AssetImage(_myThor.face),
-              fit: BoxFit.fill,
-            ),
-            //shape: BoxShape.circle,
+
+      var image = (x == _myThor.cord[0]) && (y == _myThor.cord[1])
+          ? _myThor.face
+          : (x == _myAxe.cord[0]) &&
+                  (y == _myAxe.cord[1]) &&
+                  (_myAxe.alive == true)
+              ? _myAxe.face
+              : (x == _myThanos.cord[0]) && (y == _myThanos.cord[1])
+                  ? _myThanos.face
+                  : "images/transparent.png";
+
+      currentContainer = Container(
+        margin: const EdgeInsets.all(1.5),
+        height: boxSize,
+        width: boxSize,
+        decoration: BoxDecoration(
+          color: thorPath[x][y] && _myAxe.alive ? Colors.blue : Colors.black26,
+          image: DecorationImage(
+            image: AssetImage(image),
+            fit: BoxFit.fill,
           ),
-        );
-      } //Axe Container
-      else if ((x == _myAxe.cord[0]) &&
-          (y == _myAxe.cord[1]) &&
-          (_myAxe.alive == true)) {
-        currentContainer = Container(
-          margin: const EdgeInsets.all(1.5),
-          height: 37.0,
-          width: 37.0,
-          decoration: BoxDecoration(
-            color: Colors.black12,
-            image: DecorationImage(
-              image: AssetImage(_myAxe.face),
-              fit: BoxFit.fill,
-            ),
-            //shape: BoxShape.circle,
-          ),
-        );
-      } //Thanos Container
-      else if ((x == _myThanos.cord[0]) && (y == _myThanos.cord[1])) {
-        currentContainer = Container(
-          margin: const EdgeInsets.all(1.5),
-          height: 37.0,
-          width: 37.0,
-          decoration: BoxDecoration(
-            color: Colors.black12,
-            image: DecorationImage(
-              image: AssetImage(_myThanos.face),
-              fit: BoxFit.fill,
-            ),
-            //shape: BoxShape.circle,
-          ),
-        );
-      } else {
-        currentContainer = Container(
-          margin: const EdgeInsets.all(1.5),
-          height: 37.0,
-          width: 37.0,
-          color: Colors.black12,
-        );
-      }
+          //shape: BoxShape.circle,
+        ),
+      );
 
       containers.add(currentContainer);
     }
